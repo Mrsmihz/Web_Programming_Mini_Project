@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="/css/all.css" rel="stylesheet" />
+    <link href="/css/bulma.css" rel="stylesheet" />
+    <script src="/js/all.js"></script>
+    <script src="/js/vue.js"></script>
+    <title>My ToDo List</title>
+  </head>
+  <body>
+    <section id="app">
+      <div class="container">
+        <section class="hero">
+          <div class="hero-body">
+            <div class="columns">
+              <div class="column is-narrow">
+                <p class="title">My ToDo List</p>
+              </div>
+              <div class="column is-narrow">
+                <button
+                  class="button is-primary"
+                  v-on:click="show_addNewList()"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+            <p class="subtitle my-2">
+              Completed: {{completedCount}} &nbsp Incomplete:
+              {{incompleteCount}}
+            </p>
+            <p class="subtitle my-2">Flagged: {{flaggedCount}}</p>
+          </div>
+        </section>
+        <template v-for="list in todo_list">
+          <template v-for="list_prop in lists_props">
+            <template v-if="list_prop.listId == list.id">
+              <div class="columns">
+                <div class="column is-8" :key="list.id">
+                  <div class="columns">
+                    <div class="column is-narrow">
+                      <h1 class="title">{{list.name}}</h1>
+                    </div>
+                    <div class="column is-narrow mt-3">
+                      <div class="level-left">
+                        <span
+                          class="icon is-small"
+                          v-on:click="show_editListName(list)"
+                        >
+                          <i class="fas fa-edit"></i>
+                        </span>
+                        <span
+                          class="icon is-small ml-5"
+                          v-on:click="show_deleteList(list)"
+                        >
+                          <i class="fas fa-trash-alt"></i>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div :key="task_rerender_key">
+                    <template v-for="task in getTasks(list, list_prop)">
+                      <template v-if="task.listId == list.id">
+                        <div
+                          class="box level py-3 my-2"
+                          v-if="check_listProps(list_prop, task)"
+                        >
+                          <div class="control">
+                            <label class="checkbox" :style="addTaskColor(task)">
+                              <input
+                                type="checkbox"
+                                v-model="task.isComplete"
+                                v-on:click="forceTaskToRerender()"
+                              />
+                              {{task.name}}
+                              <template v-for="prop in tasks_props">
+                                <template
+                                  v-if="prop.taskId == task.id && prop.due_date"
+                                >
+                                  (Due date: {{prop.due_date}})
+                                </template>
+                                <template
+                                  v-if="prop.taskId == task.id && prop.flagged"
+                                >
+                                  <span class="icon is-small">
+                                    <i class="fas fa-flag"></i>
+                                  </span>
+                                </template>
+                              </template>
+                            </label>
+                          </div>
+                          <div class="level-right">
+                            <span
+                              class="icon is-small"
+                              v-on:click="show_editTask(task)"
+                            >
+                              <i class="fas fa-edit"></i>
+                            </span>
+                            <span
+                              class="icon is-small ml-5"
+                              v-on:click="show_deleteTask(task)"
+                            >
+                              <i class="fas fa-trash-alt"></i>
+                            </span>
+                          </div>
+                        </div>
+                      </template>
+                    </template>
+                  </div>
+                </div>
+                <div class="column is-4 pt-6 mt-5">
+                  <div class="card">
+                    <header class="card-header has-background-primary">
+                      <p class="card-header-title">Filter</p>
+                      <p class="card-header-icon">
+                        <span class="card-header-icon icon">
+                          <i class="fas fa-filter"></i>
+                        </span>
+                      </p>
+                    </header>
+                    <div class="card-content">
+                      <div class="content">
+                        <div class="control">
+                          <label class="checkbox">
+                            <input
+                              type="checkbox"
+                              v-model="list_prop.hide_completed"
+                            />
+                            Hide completed tasks
+                          </label>
+                        </div>
+                        <div class="control">
+                          <label class="checkbox">
+                            <input
+                              type="checkbox"
+                              v-model="list_prop.show_flagged"
+                            />
+                            Show only flagged tasks
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="card mt-3">
+                    <header class="card-header has-background-primary">
+                      <p class="card-header-title">Sort</p>
+                      <p class="card-header-icon">
+                        <span class="card-header-icon icon">
+                          <i class="fas fa-filter"></i>
+                        </span>
+                      </p>
+                    </header>
+                    <div class="card-content">
+                      <div class="content">
+                        <div class="control">
+                          <label class="radio">
+                            <input
+                              type="radio"
+                              v-model="list_prop.sort_alpha"
+                              :value="true"
+                              :name="list.id"
+                              v-on:click="checkSort(list_prop)"
+                            />
+                            Sort Alphabetically
+                          </label>
+                          <br />
+                          <label class="radio">
+                            <input
+                              type="radio"
+                              :name="list.id"
+                              :value="true"
+                              v-model="list_prop.sort_incomplete"
+                              v-on:click="checkSort(list_prop)"
+                            />
+                            Sort incomplete task first
+                          </label>
+                          <br />
+                          <label class="radio">
+                            <input
+                              type="radio"
+                              :name="list.id"
+                              :value="true"
+                              v-model="list_prop.sort_flagged"
+                              v-on:click="checkSort(list_prop)"
+                            />
+                            Sort flagged task first
+                          </label>
+                          <br />
+                          <label class="radio">
+                            <input
+                              type="radio"
+                              :name="list.id"
+                              :value="true"
+                              v-model="list_prop.sort_duedate"
+                              v-on:click="checkSort(list_prop)"
+                            />
+                            Sort by due date (ascending)
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </template>
+        </template>
+        <div class="columns mb-0">
+          <div class="column is-12">
+            <h1 class="title">Add New Task</h1>
+          </div>
+        </div>
+        <div class="columns">
+          <div class="column is-4">
+            <div class="field">
+              <div class="control">
+                <input
+                  class="input"
+                  type="text"
+                  placeholder="Task Name"
+                  v-model="new_task_name"
+                />
+              </div>
+            </div>
+          </div>
+          <div class="column is-narrow">
+            <div class="control">
+              <div class="select">
+                <select v-model="selected_list">
+                  <option disabled hidden>---select list---</option>
+                  <template v-for="list in todo_list">
+                    <option :value="list.id">{{list.name}}</option>
+                  </template>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="column is-narrow">
+            <div class="control">
+              <input type="date" class="input" v-model="due_date" />
+            </div>
+          </div>
+          <div class="column is-narrow">
+            <div class="control mt-2">
+              <label class="checkbox">
+                <input type="checkbox" v-model="task_flag" />
+                Flag
+              </label>
+            </div>
+          </div>
+          <div class="column is-narrow">
+            <div class="control mt-1" :key="color_rerender_key">
+              <template v-for="element in color">
+                <span
+                  class="icon is-medium mr-2"
+                  :key="element.id"
+                  v-on:click="selectedColor(element, color, 1)"
+                >
+                  <i
+                    class="fas fa-2x"
+                    :class="{'fa-circle':!element.selected, 'fa-check-circle':element.selected}"
+                    :style="addColor(element)"
+                  >
+                  </i>
+                </span>
+              </template>
+            </div>
+          </div>
+          <div class="column is-narrow">
+            <p class="control">
+              <a class="button is-info" v-on:click="add_NewTask()">
+                Add New Task
+              </a>
+            </p>
+          </div>
+        </div>
+        <div class="modal" v-bind:class="{'is-active':addNewList_modal}">
+          <div class="modal-background"></div>
+          <div class="modal-card">
+            <header class="modal-card-head">
+              <p class="modal-card-title">New To do List</p>
+              <button
+                class="delete"
+                aria-label="close"
+                v-on:click="addNewList_modal = false"
+              ></button>
+            </header>
+            <section class="modal-card-body">
+              <input
+                type="text"
+                class="input"
+                placeholder="New To do List Name"
+                v-model="new_list_name"
+              />
+            </section>
+            <footer class="modal-card-foot">
+              <button class="button is-success" v-on:click="save_addNewList()">
+                Save
+              </button>
+            </footer>
+          </div>
+        </div>
+        <div class="modal" v-bind:class="{'is-active':editListName_modal}">
+          <div class="modal-background"></div>
+          <div class="modal-card">
+            <header class="modal-card-head">
+              <p class="modal-card-title">Edit List Name</p>
+              <button
+                class="delete"
+                aria-label="close"
+                v-on:click="editListName_modal = false"
+              ></button>
+            </header>
+            <section class="modal-card-body">
+              <input
+                type="text"
+                class="input"
+                placeholder="New To do List Name"
+                v-model="new_edit_listname"
+              />
+            </section>
+            <footer class="modal-card-foot">
+              <button class="button is-success" v-on:click="edit_ListName()">
+                Save
+              </button>
+            </footer>
+          </div>
+        </div>
+        <div class="modal" v-bind:class="{'is-active':deleteList_modal}">
+          <div class="modal-background"></div>
+          <div class="modal-card">
+            <header class="modal-card-head">
+              <p class="modal-card-title">Delete List</p>
+              <button
+                class="delete"
+                aria-label="close"
+                v-on:click="deleteList_modal = false"
+              ></button>
+            </header>
+            <section class="modal-card-body">
+              <p>
+                Are you sure you want to delete list name: "{{temp_item.name}}"
+                ?
+              </p>
+            </section>
+            <footer class="modal-card-foot">
+              <button class="button is-danger" v-on:click="delete_List()">
+                Confirm
+              </button>
+              <button
+                class="button is-primary"
+                v-on:click="deleteList_modal = false"
+              >
+                Cancel
+              </button>
+            </footer>
+          </div>
+        </div>
+        <div class="modal" v-bind:class="{'is-active':editTask_modal}">
+          <div class="modal-background"></div>
+          <div class="modal-card">
+            <header class="modal-card-head">
+              <p class="modal-card-title">Edit Task</p>
+              <button
+                class="delete"
+                aria-label="close"
+                v-on:click="editTask_modal = false"
+              ></button>
+            </header>
+            <section class="modal-card-body">
+              <div class="columns">
+                <div class="column is-8">
+                  <input
+                    class="input"
+                    type="text"
+                    v-model="new_edit_taskname"
+                  />
+                </div>
+                <div class="column is-4">
+                  <div class="select">
+                    <select v-model="edit_task_selected_list">
+                      <option disabled hidden>---select list---</option>
+                      <template v-for="list in todo_list">
+                        <option :value="list.id">{{list.name}}</option>
+                      </template>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <footer class="modal-card-foot">
+              <div class="column is-narrow">
+                <input type="date" class="input" v-model="edit_task_duedate" />
+              </div>
+              <div class="column is-narrow">
+                <label class="checkbox">
+                  <input type="checkbox" v-model="edit_task_flagged" />
+                  Flag
+                </label>
+              </div>
+              <div class="column is-narrow">
+                <div class="control mt-1" :key="color_rerender_key">
+                  <template v-for="element in color_2">
+                    <span
+                      class="icon is-medium mr-2"
+                      :key="element.id"
+                      v-on:click="selectedColor(element, color_2, 2)"
+                    >
+                      <i
+                        class="fas fa-2x"
+                        :class="{'fa-circle':!element.selected, 'fa-check-circle':element.selected}"
+                        :style="addColor(element)"
+                      >
+                      </i>
+                    </span>
+                  </template>
+                </div>
+              </div>
+              <div class="column in-narrow is-offset-1">
+                <button class="button is-primary" v-on:click="save_editTask()">
+                  Save
+                </button>
+              </div>
+            </footer>
+          </div>
+        </div>
+        <div class="modal" v-bind:class="{'is-active':deleteTask_modal}">
+          <div class="modal-background"></div>
+          <div class="modal-card">
+            <header class="modal-card-head">
+              <p class="modal-card-title">Delete Task</p>
+              <button
+                class="delete"
+                aria-label="close"
+                v-on:click="deleteTask_modal = false"
+              ></button>
+            </header>
+            <section class="modal-card-body">
+              <p>
+                Are you sure you want to delete task name: "{{temp_item.name}}"
+                ?
+              </p>
+            </section>
+            <footer class="modal-card-foot">
+              <button
+                class="button is-danger"
+                v-on:click="confirm_deleteTask()"
+              >
+                Confirm
+              </button>
+              <button
+                class="button is-primary"
+                v-on:click="deleteTask_modal = false"
+              >
+                Cancel
+              </button>
+            </footer>
+          </div>
+        </div>
+      </div>
+    </section>
+    <script>
+      var app = new Vue({
+        el: "#app",
+        data: {
+          due_date: "",
+          color_rerender_key: 100000,
+          list_id: 0,
+          task_id: 0,
+          todo_list: [],
+          tasks: [],
+          tasks_props: [],
+          lists_props: [],
+          color: [
+            { id: 1, color: "black", selected: true },
+            { id: 2, color: "red", selected: false },
+            { id: 3, color: "green", selected: false },
+          ],
+          color_2: [
+            { id: 1, color: "black", selected: true },
+            { id: 2, color: "red", selected: false },
+            { id: 3, color: "green", selected: false },
+          ],
+          addNewList_modal: false,
+          editListName_modal: false,
+          deleteList_modal: false,
+          editTask_modal: false,
+          deleteTask_modal: false,
+          new_list_name: "",
+          selected_list: "---select list---",
+          new_task_name: "",
+          task_flag: false,
+          selected_color: "black",
+          temp_item: "",
+          new_edit_listname: "",
+          new_edit_taskname: "",
+          edit_task_selected_color: "",
+          edit_task_selected_list: "---select list---",
+          edit_task_flagged: "",
+          edit_task_duedate: "",
+          task_rerender_key: 888888,
+        },
+        methods: {
+          show_addNewList: function () {
+            this.addNewList_modal = !this.addNewList_modal;
+          },
+          save_addNewList: function () {
+            if (this.new_list_name == "") {
+              alert("To do List name must be filled");
+              return;
+            }
+            var obj = {
+              id: this.list_id++,
+              name: this.new_list_name,
+            };
+            var prop = {
+              listId: obj.id,
+              hide_completed: false,
+              show_flagged: false,
+              sort_alpha: false,
+              sort_incomplete: false,
+              sort_flagged: false,
+              sort_duedate: false,
+            };
+            this.lists_props.push(prop);
+            this.todo_list.push(obj);
+            this.new_list_name = "";
+            this.addNewList_modal = false;
+          },
+          add_NewTask: function () {
+            if (this.selected_list != "---select list---") {
+              if (this.new_task_name == "") {
+                alert("Task name must be filled");
+                return;
+              }
+              var obj = {
+                id: this.task_id++,
+                name: this.new_task_name,
+                isComplete: false,
+                listId: this.selected_list,
+              };
+              var props = {
+                taskId: obj.id,
+                flagged: this.task_flag,
+                due_date: this.due_date,
+                color: this.selected_color,
+              };
+              this.task_flag = false;
+              this.new_task_name = "";
+              this.due_date = "";
+              this.tasks.push(obj);
+              this.tasks_props.push(props);
+            } else {
+              alert("Please select To do List");
+            }
+          },
+          addColor: function (element) {
+            return {
+              color: element.color,
+            };
+          },
+          selectedColor: function (element, color, selected) {
+            color.forEach((el) => {
+              el.selected = false;
+            });
+            element.selected = true;
+            if (selected == 1) {
+              this.selected_color = element.color;
+            } else if (selected == 2) {
+              this.edit_task_selected_color = element.color;
+            }
+            this.color_rerender_key++;
+          },
+          addTaskColor: function (task) {
+            var color;
+            this.tasks_props.forEach((el) => {
+              if (el.taskId == task.id) {
+                color = el.color;
+              }
+            });
+            return {
+              color: color,
+              "text-decoration": task.isComplete ? "line-through" : "none",
+            };
+          },
+          edit_ListName: function () {
+            this.todo_list.forEach((el) => {
+              if (el.id == this.temp_item.id) {
+                el.name = this.new_edit_listname;
+              }
+            });
+            this.new_edit_listname = "";
+            this.temp_item = "";
+            this.editListName_modal = false;
+          },
+          delete_List: function () {
+            for (var task of this.tasks) {
+              if (task.listId == this.temp_item.id) {
+                this.tasks_props = this.tasks_props.filter((prop) => {
+                  return task.id != prop.taskId;
+                });
+              }
+            }
+            this.tasks = this.tasks.filter((task) => {
+              return task.listId != this.temp_item.id;
+            });
+            this.todo_list = this.todo_list.filter((list) => {
+              return list.id != this.temp_item.id;
+            });
+            this.temp_item = "";
+            this.selected_list = "---select list---";
+            this.deleteList_modal = false;
+          },
+          show_editListName: function (list) {
+            this.editListName_modal = !this.editListName_modal;
+            this.temp_item = list;
+          },
+          show_deleteList: function (list) {
+            this.temp_item = list;
+            this.deleteList_modal = !this.deleteList_modal;
+          },
+          show_editTask: function (task) {
+            this.temp_item = task;
+            this.new_edit_taskname = task.name;
+            this.editTask_modal = !this.editTask_modal;
+          },
+          save_editTask: function () {
+            this.tasks.forEach((task) => {
+              if (task.id == this.temp_item.id) {
+                task.name = this.new_edit_taskname;
+                task.listId = this.edit_task_selected_list;
+                this.tasks_props.forEach((prop) => {
+                  if (prop.taskId == task.id) {
+                    prop.color = this.edit_task_selected_color;
+                    prop.flagged = this.edit_task_flagged;
+                    prop.due_date = this.edit_task_duedate;
+                  }
+                });
+              }
+            });
+            this.temp_item = "";
+            this.new_edit_taskname = "";
+            this.edit_task_flagged = false;
+            this.edit_task_duedate = "";
+            this.editTask_modal = false;
+          },
+          show_deleteTask: function (task) {
+            this.temp_item = task;
+            this.deleteTask_modal = !this.deleteTask_modal;
+          },
+          confirm_deleteTask: function () {
+            this.tasks.forEach((task) => {
+              if (task.id == this.temp_item.id) {
+                this.tasks_props = this.tasks_props.filter((prop) => {
+                  return task.id != prop.taskId;
+                });
+              }
+            });
+            this.tasks = this.tasks.filter((task) => {
+              return task.id != this.temp_item.id;
+            });
+            this.temp_item = "";
+            this.deleteTask_modal = false;
+          },
+          check_listProps: function (prop, task) {
+            if (prop.hide_completed && prop.show_flagged) {
+              if (!task.isComplete) {
+                var check = this.tasks_props.filter((el) => {
+                  if (el.taskId == task.id) {
+                    return el;
+                  }
+                });
+                return check[0].flagged;
+              } else {
+                return false;
+              }
+            } else if (prop.hide_completed && !prop.show_flagged) {
+              return !task.isComplete;
+            } else if (prop.show_flagged && !prop.hide_completed) {
+              var check = this.tasks_props.filter((el) => {
+                if (el.taskId == task.id) {
+                  return el;
+                }
+              });
+              return check[0].flagged;
+            } else {
+              return true;
+            }
+          },
+          checkSort: function (prop, value) {
+            prop.sort_alpha = false;
+            prop.sort_duedate = false;
+            prop.sort_flagged = false;
+            prop.sort_incomplete = false;
+            this.task_rerender_key++;
+          },
+          getTasks: function (list, list_prop) {
+            if (list_prop.sort_alpha) {
+              var tasks = this.tasks.filter((el) => {
+                return el.listId == list.id;
+              });
+              return tasks.sort(this.alphabetSort);
+            } 
+            else if (list_prop.sort_incomplete) {
+              var tasks = this.tasks.filter((el) => {
+                return el.listId == list.id;
+              });
+              return tasks.sort(this.incompleteSort);
+            } 
+            else if (list_prop.sort_duedate){
+              return this.getDateSort();
+            }
+            else if (list_prop.sort_flagged) {
+              return this.getFlaggedSort();
+            } 
+            else {
+              this.getDateSort();
+              return this.tasks.filter((el) => {
+                return el.listId == list.id;
+              });
+            }
+          },
+          getDateSort:function(){
+            var date_props = [];
+            var tasks_dateSort = [];
+            for (var task of this.tasks){
+              for (var prop of this.tasks_props){
+                if (task.id == prop.taskId){
+                  if (prop.due_date){
+                    date_props.push(prop)
+                  }
+                }
+              }
+            }
+            date_props = date_props.sort(this.dateSort);
+            for (var prop of date_props){
+              for (var task of this.tasks){
+                if (task.id == prop.taskId){
+                  tasks_dateSort.push(task);
+                }
+              }
+            }
+            var all_Tasks = [];
+            for (var task of this.tasks){
+              for (var prop of this.tasks_props){
+                if (task.id == prop.taskId){
+                  if (!prop.due_date){
+                    all_Tasks.push(task);
+                  }
+                }
+              }
+            }
+            return tasks_dateSort.concat(all_Tasks);
+          },
+          getFlaggedSort: function () {
+            var flagged = [];
+            for (var task of this.tasks) {
+              for (var prop of this.tasks_props) {
+                if (task.id == prop.taskId) {
+                  if (prop.flagged) {
+                    flagged.push(task);
+                  }
+                }
+              }
+            }
+            for (var task of this.tasks) {
+              for (var prop of this.tasks_props) {
+                if (task.id == prop.taskId) {
+                  if (!prop.flagged) {
+                    flagged.push(task);
+                  }
+                }
+              }
+            }
+            return flagged;
+          },
+          dateSort:function(a, b){
+            return new Date(a.due_date) - new Date(b.due_date)
+          },
+          alphabetSort: function (a, b) {
+            if (a.name < b.name) {
+              return -1;
+            }
+            if (a.name > b.name) {
+              return 1;
+            }
+            return 0;
+          },
+          incompleteSort: function (a, b) {
+            return a.isComplete - b.isComplete
+          },
+          forceTaskToRerender: function () {
+            window.setTimeout(() => {
+              this.task_rerender_key++;
+            }, 5);
+          },
+        },
+        computed: {
+          completedCount: function () {
+            return this.tasks.filter((el) => {
+              return el.isComplete;
+            }).length;
+          },
+          incompleteCount: function () {
+            return this.tasks.filter((el) => {
+              return !el.isComplete;
+            }).length;
+          },
+          flaggedCount: function () {
+            return this.tasks_props.filter((el) => {
+              return el.flagged;
+            }).length;
+          },
+        },
+      });
+    </script>
+  </body>
+</html>
