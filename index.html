@@ -508,7 +508,7 @@
             this.addNewList_modal = !this.addNewList_modal;
           },
           save_addNewList: function () {
-            if (this.new_list_name == "") {
+            if (this.new_list_name.trim() == "") {
               alert("To do List name must be filled");
               return;
             }
@@ -532,7 +532,7 @@
           },
           add_NewTask: function () {
             if (this.selected_list != "---select list---") {
-              if (this.new_task_name == "") {
+              if (this.new_task_name.trim() == "") {
                 alert("Task name must be filled");
                 return;
               }
@@ -587,6 +587,10 @@
             };
           },
           edit_ListName: function () {
+            if (this.new_edit_listname.trim() == ""){
+              alert("List name must be filled")
+              return;
+            }
             this.todo_list.forEach((el) => {
               if (el.id == this.temp_item.id) {
                 el.name = this.new_edit_listname;
@@ -607,6 +611,9 @@
             this.tasks = this.tasks.filter((task) => {
               return task.listId != this.temp_item.id;
             });
+            this.lists_props = this.lists_props.filter(list => {
+              return list.listId != this.temp_item.id;
+            })
             this.todo_list = this.todo_list.filter((list) => {
               return list.id != this.temp_item.id;
             });
@@ -628,6 +635,10 @@
             this.editTask_modal = !this.editTask_modal;
           },
           save_editTask: function () {
+            if (this.new_edit_taskname.trim() == ""){
+              alert("Task name must be filled");
+              return;
+            }
             this.tasks.forEach((task) => {
               if (task.id == this.temp_item.id) {
                 task.name = this.new_edit_taskname;
