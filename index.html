@@ -95,7 +95,7 @@
                           <div class="level-right">
                             <span
                               class="icon is-small"
-                              v-on:click="show_editTask(task)"
+                              v-on:click="show_editTask(task, list)"
                             >
                               <i class="fas fa-edit"></i>
                             </span>
@@ -495,6 +495,7 @@
           task_flag: false,
           selected_color: "black",
           temp_item: "",
+          temp_list:'',
           new_edit_listname: "",
           new_edit_taskname: "",
           edit_task_selected_color: "",
@@ -520,7 +521,7 @@
               listId: obj.id,
               hide_completed: false,
               show_flagged: false,
-              sort_alpha: false,
+              sort_alpha: true,
               sort_incomplete: false,
               sort_flagged: false,
               sort_duedate: false,
@@ -534,6 +535,10 @@
             if (this.selected_list != "---select list---") {
               if (this.new_task_name.trim() == "") {
                 alert("Task name must be filled");
+                return;
+              }
+              else if (!this.due_date.match(/^\d{4,}-\d{2}-\d{2}$/) && !(this.due_date == '')){
+                alert("Date format incorrect");
                 return;
               }
               var obj = {
@@ -629,8 +634,24 @@
             this.temp_item = list;
             this.deleteList_modal = !this.deleteList_modal;
           },
-          show_editTask: function (task) {
+          show_editTask: function (task, list) {
             this.temp_item = task;
+            this.edit_task_selected_list = list.id;
+            for (var prop of this.tasks_props){
+              if (prop.taskId == task.id){
+                this.edit_task_flagged = prop.flagged;
+                this.edit_task_duedate = prop.due_date;
+                for (el of this.color_2){
+                  if (el.color == prop.color){
+                    el.selected = true;
+                  }
+                  else{
+                    el.selected = false;
+                  }
+                }
+              }
+            }
+            this.color_rerender_key++;
             this.new_edit_taskname = task.name;
             this.editTask_modal = !this.editTask_modal;
           },
@@ -638,6 +659,10 @@
             if (this.new_edit_taskname.trim() == ""){
               alert("Task name must be filled");
               return;
+            }
+            else if (!this.edit_task_duedate.match(/^\d{4,}-\d{2}-\d{2}$/) && !(this.edit_task_duedate == '')){
+                alert("Date format incorrect");
+                return;
             }
             this.tasks.forEach((task) => {
               if (task.id == this.temp_item.id) {
