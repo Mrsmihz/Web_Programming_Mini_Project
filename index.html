@@ -162,7 +162,8 @@
                               v-model="list_prop.sort_alpha"
                               :value="true"
                               :name="list.id"
-                              v-on:click="checkSort(list_prop)"
+                              v-on:click="checkSort($event, list_prop)"
+                              selected
                             />
                             Sort Alphabetically
                           </label>
@@ -173,7 +174,7 @@
                               :name="list.id"
                               :value="true"
                               v-model="list_prop.sort_incomplete"
-                              v-on:click="checkSort(list_prop)"
+                              v-on:click="checkSort($event, list_prop)"
                             />
                             Sort incomplete task first
                           </label>
@@ -184,7 +185,7 @@
                               :name="list.id"
                               :value="true"
                               v-model="list_prop.sort_flagged"
-                              v-on:click="checkSort(list_prop)"
+                              v-on:click="checkSort($event, list_prop)"
                             />
                             Sort flagged task first
                           </label>
@@ -195,7 +196,7 @@
                               :name="list.id"
                               :value="true"
                               v-model="list_prop.sort_duedate"
-                              v-on:click="checkSort(list_prop)"
+                              v-on:click="checkSort($event, list_prop)"
                             />
                             Sort by due date (ascending)
                           </label>
@@ -502,7 +503,7 @@
           edit_task_selected_list: "---select list---",
           edit_task_flagged: "",
           edit_task_duedate: "",
-          task_rerender_key: 888888,
+          task_rerender_key: 888888
         },
         methods: {
           show_addNewList: function () {
@@ -525,6 +526,7 @@
               sort_incomplete: false,
               sort_flagged: false,
               sort_duedate: false,
+              previous_sort:'Sort Alphabetically'
             };
             this.lists_props.push(prop);
             this.todo_list.push(obj);
@@ -727,7 +729,14 @@
               return true;
             }
           },
-          checkSort: function (prop, value) {
+          checkSort: function (e, prop) {
+            if (e.target.parentNode.innerText.trim() == prop.previous_sort){
+              this.task_rerender_key++;
+              return;
+            }
+            else{
+              prop.previous_sort = e.target.parentNode.innerText.trim();
+            }
             prop.sort_alpha = false;
             prop.sort_duedate = false;
             prop.sort_flagged = false;
@@ -818,10 +827,10 @@
             return new Date(a.due_date) - new Date(b.due_date)
           },
           alphabetSort: function (a, b) {
-            if (a.name < b.name) {
+            if (a.name.toLowerCase() < b.name.toLowerCase()) {
               return -1;
             }
-            if (a.name > b.name) {
+            if (a.name.toLowerCase() > b.name.toLowerCase()) {
               return 1;
             }
             return 0;
